@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>SentinelGate Gate Display</title>
+<script src="https://cdn.jsdelivr.net/npm/otplib@12.0.1/otplib-browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--s2:#1a2235;--border:rgba(99,179,237,.15);--accent:#63b3ed;--a2:#4fd1c5;--danger:#fc8181;--warn:#f6ad55;--ok:#68d391;--text:#e2e8f0;--muted:#718096;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 28px;border-bottom:1px solid var(--border);background:var(--surface);}
+.brand{font-size:13px;letter-spacing:.25em;color:var(--accent);}
+.brand span{color:var(--muted);}
+.qrframe{position:relative;width:280px;height:280px;}
+.corner{position:absolute;width:28px;height:28px;border-color:var(--accent);border-style:solid;}
+.tl{top:0;left:0;border-width:2px 0 0 2px;}.tr{top:0;right:0;border-width:2px 2px 0 0;}
+.bl{bottom:0;left:0;border-width:0 0 2px 2px;}.br{bottom:0;right:0;border-width:0 2px 2px 0;}
+.qrinner{position:absolute;inset:12px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:2px;}
+.ubar{height:4px;background:var(--s2);border-radius:2px;overflow:hidden;margin-top:4px;}
+.ufill{height:100%;border-radius:2px;transition:width .5s,background .5s;}
+</style></head><body>
+<div class="topbar">
+  <div class="brand">SENTINEL<span>GATE</span> · GATE DISPLAY</div>
+  <div id="clock" style="color:var(--accent);">--:--:--</div>
+</div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:40px;">
+  <div style="text-align:center;">
+    <div style="font-size:11px;color:var(--muted);letter-spacing:.2em;margin-bottom:16px;">GATE: <strong id="gateid">G-01</strong></div>
+    <div class="qrframe">
+      <div class="corner tl"></div><div class="corner tr"></div>
+      <div class="corner bl"></div><div class="corner br"></div>
+      <div class="qrinner"><canvas id="qrc"></canvas></div>
+    </div>
+    <div style="margin-top:24px;text-align:center;color:var(--accent);font-size:20px;letter-spacing:.25em;font-weight:bold;" id="tval">--- ---</div>
+  </div>
+  <div style="width:100%;max-width:400px;padding:0 24px;">
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;font-size:11px;">
+      <span style="color:var(--muted);">Queue Load (ρ)</span>
+      <strong id="rho">0.00</strong>
+    </div>
+    <div class="ubar"><div class="ufill" id="ubar" style="width:0%;background:var(--ok)"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px;font-size:11px;color:var(--muted);">
+      <span>Arrivals/min: <strong id="lam">0</strong></span>
+      <span>Service: <strong id="mu">12</strong>/min</span>
+      <span>Wait: <strong id="wait">—</strong></span>
+    </div>
+  </div>
+</div>
+<div style="text-align:center;padding:16px;color:var(--muted);font-size:10px;border-top:1px solid var(--border);">
+  SentinelGate v2 — Real-time MFA Gate Display
+</div>
+<script>
+const C={GATE_ID:'G-01',GEO_ID:'HOSTEL_A',BACKEND:'http://localhost:3001',SECRET:null,DELTA:0,STEP:30};
+let S={rho:0,lam:0,mu:12};
+let lastW=-1;
+
+// SNTP clock sync
+async function syncClock(){
+  try{
+    const t0=Date.now();
+    const r=await fetch(`${C.BACKEND}/sync/time?client_ts=${t0}`);
+    const t1=Date.now();
+    if(!r.ok)return;
+    const d=await r.json();
+    C.DELTA=d.server_ts_ms-t0+(t1-t0)/2;
+  }catch(e){}
+}
+
+const TT=()=>Date.now()+C.DELTA;
+
+async function boot(){
+  try{
+    await syncClock();
+    const r=await fetch(`${C.BACKEND}/gate/bootstrap`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gate_id:C.GATE_ID})});
+    if(r.ok){
+      const d=await r.json();
+      C.SECRET=d.totp_secret;
+      S.rho=parseFloat(d.rho)||0;S.lam=d.lambda||0;S.mu=d.mu||12;
+    }else throw new Error();
+  }catch{
+    C.SECRET='JBSWY3DPEHPK3PXP';C.DELTA=0;
+  }
+  setInterval(poll,30000);
+  setInterval(syncClock,300000);
+}
+
+async function poll(){
+  try{
+    const r=await fetch(`${C.BACKEND}/gate/telemetry/${C.GATE_ID}`);
+    if(!r.ok)return;
+    const d=await r.json();
+    S.rho=parseFloat(d.rho)||0;S.lam=d.lambda||0;S.mu=d.mu||12;
+    renderUI();
+  }catch{}
+}
+
+function mkTOTP(){if(!C.SECRET)return'------';try{otplib.totp.options={step:C.STEP,window:1};return otplib.totp.generate(C.SECRET);}catch{return'------';}}
+
+function mkPayload(tok){const w=Math.floor(TT()/1000/C.STEP);return JSON.stringify({v:2,g:C.GATE_ID,geo:C.GEO_ID,t:tok,w,mode:'FULL'});}
+
+async function genQR(){
+  const tok=mkTOTP();
+  try{await QRCode.toCanvas(document.getElementById('qrc'),mkPayload(tok),{width:234,margin:1,color:{dark:'#000',light:'#fff'},errorCorrectionLevel:'M'});}
+  catch(e){}
+  document.getElementById('tval').textContent=tok.replace(/(.{3})/,'$1 ').trim();
+}
+
+function renderUI(){
+  document.getElementById('rho').textContent=S.rho.toFixed(2);
+  document.getElementById('lam').textContent=S.lam;
+  document.getElementById('mu').textContent=S.mu;
+  const ub=document.getElementById('ubar');
+  ub.style.width=Math.min(S.rho*100,100).toFixed(1)+'%';
+  ub.style.background=S.rho>=.9?'var(--danger)':S.rho>=.7?'var(--warn)':'var(--ok)';
+  if(S.rho<1&&S.lam>0)document.getElementById('wait').textContent=S.rho>.5?(1/(S.mu*(1-S.rho))).toFixed(1)+'s':'<2s';
+  else if(S.rho>=1)document.getElementById('wait').textContent='∞ CRITICAL';
+}
+
+function tick(){
+  const ts=Math.floor(TT()/1000);const cw=Math.floor(ts/C.STEP);
+  if(cw!==lastW){lastW=cw;genQR();}
+  document.getElementById('clock').textContent=new Date(TT()).toLocaleTimeString('en-IN',{hour12:false});
+}
+
+document.getElementById('gateid').textContent=C.GATE_ID;
+boot();
+setInterval(tick,1000);
+tick();
+</script>
+</body></html>

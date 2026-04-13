@@ -1,0 +1,104 @@
+version: '3.9'
+
+# ═══════════════════════════════════════════════════════
+# SentinelGate — One-command dev stack
+# Run: docker-compose up -d
+# Then: node backend/bootstrap.js (first time only)
+# ═══════════════════════════════════════════════════════
+
+services:
+  # ── PostgreSQL 15 with PostGIS ──────────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: sg_postgres
+    environment:
+      POSTGRES_DB:       sentinelgate
+      POSTGRES_USER:     sentinel_app
+      POSTGRES_PASSWORD: sg_dev_password_change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel_app -d sentinelgate"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis 7 (nonce cache + gate telemetry) ──────────
+  redis:
+    image: redis:7-alpine
+    container_name: sg_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Node.js Backend (Transaction Server) ───────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sg_backend
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV:            development
+      DB_HOST:             postgres
+      DB_PORT:             5432
+      DB_NAME:             sentinelgate
+      DB_USER:             sentinel_app
+      DB_PASSWORD:         sg_dev_password_change_me
+      REDIS_URL:           redis://redis:6379
+      JWT_SECRET:          dev_jwt_secret_32_chars_minimum__
+      ADMIN_JWT_SECRET:    dev_admin_secret_32_chars_minimum
+      ML_WORKER_URL:       http://ml_worker:8000
+      HMAC_TIMESTAMP_WINDOW: 60
+      PORT:                3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Python FastAPI ML Worker ────────────────────────
+  ml_worker:
+    build:
+      context: ./ml-worker
+      dockerfile: Dockerfile
+    container_name: sg_ml_worker
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     sentinelgate
+      DB_USER:     sentinel_app
+      DB_PASSWORD: sg_dev_password_change_me
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Nginx (serves frontends) ────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: sg_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/gate-display:/usr/share/nginx/html/gate:ro
+      - ./frontend/admin-dashboard:/usr/share/nginx/html/admin:ro
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

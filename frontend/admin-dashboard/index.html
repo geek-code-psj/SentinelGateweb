@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SentinelGate Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@3.x.x/dist/cdn.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --surface: #111827;
+      --s2: #1a2235;
+      --border: rgba(99, 179, 237, 0.15);
+      --accent: #63b3ed;
+      --a2: #4fd1c5;
+      --danger: #fc8181;
+      --warn: #f6ad55;
+      --ok: #68d391;
+      --text: #e2e8f0;
+      --muted: #718096;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+    }
+
+    .header-info {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 12px 16px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 12px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: monospace;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(99, 179, 237, 0.3);
+    }
+
+    button {
+      padding: 10px 16px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      background: var(--a2);
+      transform: translateY(-1px);
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button.warning {
+      background: var(--warn);
+    }
+
+    .event-row {
+      padding: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      border-radius: 2px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      font-size: 11px;
+    }
+
+    .event-row small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-size: 10px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .status-granted {
+      background: var(--ok);
+      color: var(--bg);
+    }
+
+    .status-rejected {
+      background: var(--danger);
+      color: white;
+    }
+
+    .status-pending {
+      background: var(--warn);
+      color: var(--bg);
+    }
+
+    .login-card {
+      max-width: 400px;
+      margin: 100px auto;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .metric {
+      padding: 15px;
+      background: var(--s2);
+      border-left: 3px solid var(--accent);
+      border-radius: 2px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--accent);
+      margin: 10px 0;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-top: 2px solid var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error {
+      padding: 15px;
+      background: rgba(252, 129, 129, 0.1);
+      border: 1px solid var(--danger);
+      border-radius: 2px;
+      color: var(--danger);
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+
+    .success {
+      padding: 15px;
+      background: rgba(104, 211, 145, 0.1);
+      border: 1px solid var(--ok);
+      border-radius: 2px;
+      color: var(--ok);
+      margin-bottom: 15px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div x-data="adminApp()" x-init="init()" class="container">
+    <!-- Login Tab -->
+    <div x-show="!token" class="login-card">
+      <div class="card">
+        <h2 style="margin-bottom: 20px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em;">Login</h2>
+        <div x-show="loginError" class="error" x-text="loginError"></div>
+        <div class="form-group">
+          <label>Roll Number (Admin/Warden/Guard)</label>
+          <input x-model="loginForm.roll_number" type="text" placeholder="e.g. ADMIN-001">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input x-model="loginForm.password" type="password">
+        </div>
+        <button @click="login()" style="width: 100%;">Login</button>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div x-show="token" style="display: none;">
+      <div class="header">
+        <div class="header-title">SENTINEL<span style="color: var(--muted);">GATE</span> · ADMIN</div>
+        <div class="header-info">
+          <span>Role: <strong x-text="userRole"></strong></span>
+          <span>User: <strong x-text="userName"></strong></span>
+          <button @click="logout()" style="padding: 8px 12px; font-size: 11px;">Logout</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn" :class="{ active: activeTab === 'feed' }" @click="activeTab = 'feed'">Live Feed</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'leave' }" @click="activeTab = 'leave'">Leave Queue</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'override' }" @click="activeTab = 'override'">Overrides</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'geofence' }" @click="activeTab = 'geofence'">Geofences</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'curfew' }" @click="activeTab = 'curfew'">Curfew</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'metrics' }" @click="activeTab = 'metrics'">Metrics</button>
+      </div>
+
+      <!-- Live Feed Tab -->
+      <div x-show="activeTab === 'feed'" class="tab-content active">
+        <div class="card">
+          <h3 style="margin-bottom: 15px; color: var(--accent); text-transform: uppercase;">Real-Time Auth Feed (SSE)</h3>
+          <p style="color: var(--muted); font-size: 11px; margin-bottom: 15px;">Connected to /admin/stream <span x-show="sseConnected" style="color: var(--ok);">🟢 LIVE</span> <span x-show="!sseConnected" style="color: var(--warn);">🟡 CONNECTING</span></p>
+          <div x-show="events.length === 0" style="color: var(--muted); text-align: center; padding: 20px;">No events yet...</div>
+          <template x-for="event in events.slice(0, 20)" :key="event.id">
+            <div class="event-row">
+              <div>
+                <strong x-text="event.student_roll || 'Unknown'"></strong>
+                <small x-text="event.ts || '—'"></small>
+              </div>
+              <div>
+                Gate: <strong x-text="event.gate_id || '—'"></strong>
+                <small x-text="'TOTP: ' + (event.totp_valid ? '✓' : '✗')"></small>
+              </div>
+              <div>
+                GPS: <strong x-text="(event.gps_in_fence ? '✓' : '✗') + ' (' + (event.gps_distance_m || '—') + 'm)'"></strong>
+                <small x-text="'Liveness: ' + (event.liveness_score ? event.liveness_score.toFixed(2) : '—')"</small>
+              </div>
+              <div>
+                <span class="status-badge" :class="'status-' + (event.status || 'pending').toLowerCase()" x-text="event.status || 'PENDING'"></span>
+                <small x-text="event.rejection_reason || '—'"></small>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Leave Queue Tab -->
+      <div x-show="activeTab === 'leave'" class="tab-content">
+        <div class="card">
+          <h3 style="margin-bottom: 15px; color: var(--accent); text-transform: uppercase;">Leave Approval Queue</h3>
+          <div x-show="leaveQueue.length === 0" style="color: var(--muted); text-align: center; padding: 20px;">No pending leaves</div>
+          <template x-for="leave in leaveQueue" :key="leave.id">
+            <div class="event-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+              <div>
+                <strong x-text="leave.roll_number"></strong> requests <strong x-text="leave.reason"></strong>
+                <small x-text="'Duration: ' + leave.duration_hours + 'h | Expected return: ' + new Date(leave.expected_return_ts).toLocaleString()"></small>
+              </div>
+              <div x-text="leave.status" style="text-align: center; color: var(--warn);"></div>
+              <div x-show="leave.status === 'PENDING_APPROVAL'">
+                <button @click="approveLeave(leave.id)" style="padding: 6px 8px; font-size: 10px;">Approve</button>
+              </div>
+              <div x-show="leave.status === 'PENDING_APPROVAL'">
+                <button @click="rejectLeave(leave.id)" class="danger" style="padding: 6px 8px; font-size: 10px;">Reject</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Override Console Tab -->
+      <div x-show="activeTab === 'override'" class="tab-content">
+        <div class="card">
+          <h3 style="margin-bottom: 15px; color: var(--accent); text-transform: uppercase;">Guard Override Console</h3>
+          <div x-show="overrideMessage" :class="overrideMessage.includes('success') ? 'success' : 'error'" x-text="overrideMessage"></div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Student Roll Number</label>
+              <input x-model="overrideForm.student_roll" type="text" placeholder="e.g. 2021CS042">
+            </div>
+            <div class="form-group">
+              <label>Gate ID</label>
+              <input x-model="overrideForm.gate_id" type="text" placeholder="e.g. G-01">
+            </div>
+            <div class="form-group">
+              <label>Action</label>
+              <select x-model="overrideForm.action">
+                <option value="">Select action...</option>
+                <option value="FORCE_ENTRY">Force Entry</option>
+                <option value="FORCE_EXIT">Force Exit</option>
+                <option value="FORCE_EXEMPT">Force Exempt</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Reason</label>
+              <select x-model="overrideForm.reason">
+                <option value="">Select reason...</option>
+                <option value="EMERGENCY">Emergency</option>
+                <option value="SYSTEM_FAILURE">System Failure</option>
+                <option value="MANUAL_AUTH">Manual Authentication</option>
+                <option value="OVERRIDE">Override</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label>Notes</label>
+              <textarea x-model="overrideForm.notes" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+            <button @click="submitOverride()" style="grid-column: 1 / -1;">Submit Override</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Geofence Map Tab -->
+      <div x-show="activeTab === 'geofence'" class="tab-content">
+        <div class="card">
+          <h3 style="margin-bottom: 15px; color: var(--accent); text-transform: uppercase;">Geofence Zones</h3>
+          <table style="width: 100%; font-size: 11px; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="text-align: left; padding: 10px; text-transform: uppercase; color: var(--accent);">ID</th>
+                <th style="text-align: left; padding: 10px; text-transform: uppercase; color: var(--accent);">Name</th>
+                <th style="text-align: left; padding: 10px; text-transform: uppercase; color: var(--accent);">Center</th>
+                <th style="text-align: left; padding: 10px; text-transform: uppercase; color: var(--accent);">Radius</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="geo in geofences" :key="geo.id">
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 10px;"><strong x-text="geo.id"></strong></td>
+                  <td style="padding: 10px;" x-text="geo.name"></td>
+                  <td style="padding: 10px;" x-text="geo.center_lat.toFixed(4) + ',' + geo.center_lng.toFixed(4)"></td>
+                  <td style="padding: 10px;" x-text="geo.radius_meters + 'm'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Curfew Violations Tab -->
+      <div x-show="activeTab === 'curfew'" class="tab-content">
+        <div class="card">
+          <h3 style="margin-bottom: 15px; color: var(--accent); text-transform: uppercase;">Current Curfew Violations</h3>
+          <div x-show="curfewViolations.length === 0" style="color: var(--muted); text-align: center; padding: 20px;">No violations today</div>
+          <template x-for="v in curfewViolations" :key="v.id">
+            <div class="event-row">
+              <div>
+                <strong x-text="v.student_roll"></strong> - <span x-text="v.student_name || 'Anon'"></span>
+                <small x-text="'Hostel: ' + v.hostel_block"></small>
+              </div>
+              <div>
+                Last Seen: <strong x-text="v.last_seen_gate || '—'"></strong>
+                <small x-text="v.last_seen_at ? new Date(v.last_seen_at).toLocaleTimeString() : '—'"></small>
+              </div>
+              <div>
+                <span style="color: var(--danger); font-weight: bold;" x-text="v.minutes_late + ' min late'"></span>
+              </div>
+              <div>
+                Status: <strong x-text="v.status"></strong>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Metrics Tab -->
+      <div x-show="activeTab === 'metrics'" class="tab-content">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+          <div class="metric">
+            <div class="metric-label">Auths / Hour</div>
+            <div class="metric-value" x-text="metrics.auths_per_hour || '—'"></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Anomalies (24h)</div>
+            <div class="metric-value" x-text="metrics.anomalies_today || '—'"></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Active Gates</div>
+            <div class="metric-value" x-text="metrics.active_gates || '—'"></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Peak ρ (Queue Utilization)</div>
+            <div class="metric-value" x-text="metrics.peak_rho || '—'"></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Curfew Violations</div>
+            <div class="metric-value" style="color: var(--danger);" x-text="metrics.curfew_violations || '—'"></div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Students OUT</div>
+            <div class="metric-value" x-text="metrics.students_out || '—'"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function adminApp() {
+      return {
+        token: localStorage.getItem('adminToken') || null,
+        userRole: localStorage.getItem('adminRole') || null,
+        userName: localStorage.getItem('adminName') || null,
+        activeTab: 'feed',
+        
+        loginForm: { roll_number: '', password: '' },
+        loginError: '',
+        
+        events: [],
+        sseConnected: false,
+        eventSource: null,
+        
+        leaveQueue: [],
+        curfewViolations: [],
+        geofences: [],
+        metrics: {},
+        
+        overrideForm: { student_roll: '', gate_id: '', action: '', reason: '', notes: '' },
+        overrideMessage: '',
+
+        async init() {
+          if (this.token) {
+            this.connectSSE();
+            this.loadLeaveQueue();
+            this.loadCurfew();
+            this.loadGeofences();
+            this.loadMetrics();
+            setInterval(() => this.loadMetrics(), 30000); // Refresh metrics every 30s
+          }
+        },
+
+        async login() {
+          try {
+            const res = await fetch('/admin/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.loginForm)
+            });
+            const data = await res.json();
+            if (res.ok) {
+              this.token = data.token;
+              this.userRole = data.role;
+              this.userName = data.name;
+              localStorage.setItem('adminToken', this.token);
+              localStorage.setItem('adminRole', this.role);
+              localStorage.setItem('adminName', this.userName);
+              this.init();
+            } else {
+              this.loginError = data.error || 'Login failed';
+            }
+          } catch (e) {
+            this.loginError = 'Connection error: ' + e.message;
+          }
+        },
+
+        logout() {
+          this.token = null;
+          this.userRole = null;
+          this.userName = null;
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminRole');
+          localStorage.removeItem('adminName');
+          if (this.eventSource) this.eventSource.close();
+        },
+
+        connectSSE() {
+          this.eventSource = new EventSource('/admin/stream?token=' + this.token);
+          this.eventSource.onopen = () => { this.sseConnected = true; };
+          this.eventSource.addEventListener('auth_event', (e) => {
+            const event = JSON.parse(e.data);
+            this.events.unshift(event);
+            if (this.events.length > 100) this.events.pop();
+          });
+          this.eventSource.onerror = () => { this.sseConnected = false; };
+        },
+
+        async loadLeaveQueue() {
+          try {
+            const res = await fetch('/leave/pending', {
+              headers: { 'Authorization': 'Bearer ' + this.token }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.leaveQueue = data.leaves || [];
+            }
+          } catch (e) {}
+        },
+
+        async approveLeave(leaveId) {
+          try {
+            const res = await fetch(`/leave/approve/${leaveId}`, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ decision: 'approved', notes: 'Approved by admin' })
+            });
+            if (res.ok) {
+              this.leaveQueue = this.leaveQueue.filter(l => l.id !== leaveId);
+            }
+          } catch (e) {}
+        },
+
+        async rejectLeave(leaveId) {
+          try {
+            const res = await fetch(`/leave/approve/${leaveId}`, {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ decision: 'rejected', notes: 'Rejected by admin' })
+            });
+            if (res.ok) {
+              this.leaveQueue = this.leaveQueue.filter(l => l.id !== leaveId);
+            }
+          } catch (e) {}
+        },
+
+        async submitOverride() {
+          try {
+            const res = await fetch('/admin/override', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.overrideForm)
+            });
+            const data = await res.json();
+            if (res.ok) {
+              this.overrideMessage = 'Override submitted successfully';
+              this.overrideForm = { student_roll: '', gate_id: '', action: '', reason: '', notes: '' };
+              setTimeout(() => { this.overrideMessage = ''; }, 3000);
+            } else {
+              this.overrideMessage = 'Error: ' + (data.error || 'Unknown error');
+            }
+          } catch (e) {
+            this.overrideMessage = 'Error: ' + e.message;
+          }
+        },
+
+        async loadCurfew() {
+          try {
+            const res = await fetch('/admin/curfew', {
+              headers: { 'Authorization': 'Bearer ' + this.token }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.curfewViolations = data.violations || [];
+            }
+          } catch (e) {}
+        },
+
+        async loadGeofences() {
+          try {
+            const res = await fetch('/admin/geofences', {
+              headers: { 'Authorization': 'Bearer ' + this.token }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              this.geofences = data.geofences || [];
+            }
+          } catch (e) {}
+        },
+
+        async loadMetrics() {
+          try {
+            const res = await fetch('/admin/metrics', {
+              headers: { 'Authorization': 'Bearer ' + this.token }
+            });
+            if (res.ok) {
+              this.metrics = await res.json();
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  </script>
+</body>
+</html>
