@@ -17,6 +17,7 @@ const { pool }    = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // ── Security middleware ──────────────────────────────────────
 app.use(helmet({
@@ -103,16 +104,21 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  SentinelGate Backend v2.0               ║`);
-  console.log(`║  Listening on http://localhost:${PORT}      ║`);
+  console.log(`║  Listening on http://${HOST}:${PORT}         ║`);
   console.log(`╚══════════════════════════════════════════╝\n`);
   console.log(`  ENV:  ${process.env.NODE_ENV || 'development'}`);
   console.log(`  DB:   ${process.env.DB_HOST}/${process.env.DB_NAME}`);
   console.log(`  Redis: ${process.env.REDIS_URL || 'redis://localhost:6379'}\n`);
 
   startAllCrons();
+});
+
+server.on('error', (err) => {
+  console.error('[SERVER] Failed to start:', err.message);
+  process.exit(1);
 });
 
 module.exports = app;
