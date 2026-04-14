@@ -13,23 +13,16 @@ const { cacheGateSecret, getGateSecretFromCache, cacheGateTelemetry, getGateTele
  *  - server_ts: current Unix seconds (for clock sync)
  *  - gate_status, mfa_mode: current operational state
  *
- * Authentication: gate device has a pre-shared API key provisioned by admin.
- * In production, use mTLS or a signed device certificate.
+ * Authentication: None required (public endpoint for gate tablets)
+ * In production with external access, use mTLS or add API key verification
  */
 router.post('/bootstrap', async (req, res) => {
   console.log('[Gate Bootstrap] POST received - body:', JSON.stringify(req.body));
   const { gate_id } = req.body;
-  const apiKey = req.headers['x-gate-api-key'];
 
   if (!gate_id) {
+    console.log('[Gate Bootstrap] Missing gate_id');
     return res.status(400).json({ error: 'gate_id required' });
-  }
-
-  // In production: verify apiKey against gates table
-  // For now, any request with the gate_id is accepted in dev mode
-  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-  if (!isDev && !apiKey) {
-    return res.status(401).json({ error: 'GATE_API_KEY_REQUIRED' });
   }
 
   try {
@@ -41,10 +34,12 @@ router.post('/bootstrap', async (req, res) => {
     );
 
     if (result.rowCount === 0) {
+      console.log('[Gate Bootstrap] Gate not found:', gate_id);
       return res.status(404).json({ error: 'GATE_NOT_FOUND' });
     }
 
     const gate = result.rows[0];
+    console.log('[Gate Bootstrap] ✓ Gate found:', gate_id);
 
     // Initialize gate secret if still placeholder
     let secret = gate.totp_secret_enc;

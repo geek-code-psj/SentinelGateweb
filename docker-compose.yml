@@ -54,6 +54,7 @@ services:
       DB_NAME:             sentinelgate
       DB_USER:             sentinel_app
       DB_PASSWORD:         sg_dev_password_change_me
+      DB_SSL:              false
       REDIS_URL:           redis://redis:6379
       JWT_SECRET:          dev_jwt_secret_32_chars_minimum__
       ADMIN_JWT_SECRET:    dev_admin_secret_32_chars_minimum
