@@ -78,6 +78,15 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// Keep root path healthy for platforms that default health checks to '/'.
+app.get('/', (req, res) => {
+  res.status(200).json({ service: 'sentinelgate-backend', status: 'ok' });
+});
+
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // ── Routes ────────────────────────────────────────────────────
 console.log('[SERVER] Registering gate routes...');
 app.use('/gate',  gateRoutes);
