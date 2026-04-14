@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SentinelGate Admin Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@3.x.x/dist/cdn.min.js" defer></script>
   <style>
     :root {
       --bg: #0a0e1a;
@@ -298,7 +297,7 @@
           <label>Password</label>
           <input x-model="loginForm.password" type="password">
         </div>
-        <button @click="login()" style="width: 100%;">Login</button>
+        <button @click="login()" style="width: 100%; cursor: pointer;">Login</button>
       </div>
     </div>
 
@@ -502,7 +501,10 @@
   </div>
 
   <script>
+    console.log('[Admin Dashboard] adminApp function defined');
+    
     function adminApp() {
+      console.log('[Admin Dashboard] adminApp called - initializing app');
       return {
         token: localStorage.getItem('adminToken') || null,
         userRole: localStorage.getItem('adminRole') || null,
@@ -692,6 +694,32 @@
         }
       }
     }
+  </script>
+
+  <!-- Load Alpine.js AFTER adminApp function is defined -->
+  <script>
+    console.log('[Admin Dashboard] Loading Alpine.js...');
+    console.log('[Admin Dashboard] adminApp function exists?', typeof adminApp);
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    // Wait for Alpine to load
+    document.addEventListener('alpine:init', () => {
+      console.log('[Admin Dashboard] ✓ Alpine initialized via alpine:init event');
+    });
+    
+    setTimeout(() => {
+      console.log('[Admin Dashboard] Alpine.js check (500ms after load)');
+      console.log('[Admin Dashboard] window.Alpine exists?', typeof window.Alpine);
+      
+      if (!window.Alpine) {
+        console.log('[Admin Dashboard] ⚠️ Alpine.js failed to load! Trying to re-initialize...');
+        if (typeof Alpine !== 'undefined') {
+          console.log('[Admin Dashboard] Alpine variable exists globally');
+          Alpine.start();
+        }
+      }
+    }, 500);
   </script>
 </body>
 </html>

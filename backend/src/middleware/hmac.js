@@ -107,10 +107,20 @@ async function hmacMiddleware(req, res, next) {
 }
 
 // Auth middleware for admin/warden/guard routes
+// Accepts JWT from either Authorization header OR query parameter (for SSE/EventSource)
 function requireAuth(allowedRoles = []) {
   return (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    // Try Authorization header first (preferred)
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // Fall back to query parameter if no header (needed for EventSource/SSE)
+    if (!token && req.query.token) {
+      token = req.query.token;
+      console.log('[Auth] Using token from query parameter (SSE/EventSource)');
+    }
+    
     if (!token) {
+      console.log('[Auth] No token found in headers or query params');
       return res.status(401).json({ error: 'AUTH_NO_TOKEN' });
     }
     
@@ -118,15 +128,18 @@ function requireAuth(allowedRoles = []) {
       const jwt = require('jsonwebtoken');
       const secret = (req.headers['x-admin-token'] || process.env.ADMIN_JWT_SECRET) || (process.env.JWT_SECRET || 'dev_secret');
       const decoded = jwt.verify(token, secret);
+      console.log('[Auth] ✓ Token valid for user:', decoded.roll);
       
       if (allowedRoles.length > 0 && !allowedRoles.includes(decoded.role)) {
+        console.log('[Auth] User role not allowed:', decoded.role, 'allowed:', allowedRoles);
         return res.status(403).json({ error: 'AUTH_FORBIDDEN' });
       }
       
       req.admin = decoded;
       next();
     } catch (err) {
-      return res.status(401).json({ error: 'AUTH_INVALID_TOKEN' });
+      console.log('[Auth] Token verification failed:', err.message);
+      return res.status(401).json({ error: 'AUTH_INVALID_TOKEN', details: err.message });
     }
   };
 }
