@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sentinel.users (
     room_number     VARCHAR(10),
     phone_hash      TEXT,                                -- bcrypt hash, never plain
     email_hash      TEXT,
+    password_hash   TEXT,                                -- bcrypt hash for admin/warden login
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     enrolled_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_seen_at    TIMESTAMPTZ

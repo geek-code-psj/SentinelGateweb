@@ -144,7 +144,7 @@ function startTelemetryCron() {
         );
       }
     } catch (err) {
-      console.error('[CRON] Telemetry snapshot failed:', err.message);
+      console.error('[CRON] Telemetry snapshot failed:', err?.message || err || 'Unknown error');
     }
   });
 

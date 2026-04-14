@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT id, roll_number, role, full_name FROM sentinel.users
+      `SELECT id, roll_number, role, full_name, password_hash FROM sentinel.users
        WHERE roll_number = $1 AND role IN ('admin','warden','guard') AND is_active = TRUE`,
       [roll_number]
     );
@@ -23,6 +23,12 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'LOGIN_INVALID_CREDENTIALS' });
     }
     const user = result.rows[0];
+    
+    // Validate password using bcrypt
+    const passwordMatch = await bcrypt.compare(password, user.password_hash || '');
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'LOGIN_INVALID_CREDENTIALS' });
+    }
     const secret = user.role === 'admin'
       ? (process.env.ADMIN_JWT_SECRET || 'dev_admin_secret')
       : (process.env.JWT_SECRET || 'dev_secret');

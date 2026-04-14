@@ -13,6 +13,7 @@
 require('dotenv').config();
 const { pool } = require('./src/db');
 const { generateGateSecret } = require('./src/utils/totp');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
 async function bootstrap() {
@@ -72,9 +73,9 @@ async function bootstrap() {
 
   // 2. Create default users (if not exists)
   const defaultUsers = [
-    { roll: 'ADMIN-001', name: 'System Administrator', role: 'admin' },
-    { roll: 'WAR-001', name: 'Warden Smith', role: 'warden' },
-    { roll: 'STU-001', name: 'Test Student', role: 'student', block: 'A', room: '101' },
+    { roll: 'ADMIN-001', name: 'System Administrator', role: 'admin', password: 'admin123' },
+    { roll: 'WAR-001', name: 'Warden Smith', role: 'warden', password: 'warden123' },
+    { roll: 'STU-001', name: 'Test Student', role: 'student', block: 'A', room: '101', password: 'student123' },
   ];
 
   for (const u of defaultUsers) {
@@ -83,23 +84,28 @@ async function bootstrap() {
       [u.roll]
     );
     if (existing.rowCount === 0) {
+      const passwordHash = u.password ? await bcrypt.hash(u.password, 10) : null;
       await pool.query(
-        `INSERT INTO sentinel.users (roll_number, full_name, role, hostel_block, room_number)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [u.roll, u.name, u.role, u.block || null, u.room || null]
+        `INSERT INTO sentinel.users (roll_number, full_name, role, hostel_block, room_number, password_hash)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [u.roll, u.name, u.role, u.block || null, u.room || null, passwordHash]
       );
-      console.log(`  Created user: roll=${u.roll}, role=${u.role}`);
+      console.log(`  Created user: roll=${u.roll}, role=${u.role}, password=${u.password}`);
     } else {
       console.log(`  User ${u.roll} already exists — skipping`);
     }
   }
 
   console.log('\n✅ Bootstrap complete.\n');
-  console.log('Next steps:');
+  console.log('📝 DEFAULT CREDENTIALS:');
+  console.log('   Admin:    ADMIN-001 / admin123');
+  console.log('   Warden:   WAR-001 / warden123');
+  console.log('   Student:  STU-001 / student123');
+  console.log('\nNext steps:');
   console.log('  1. Save gate secrets to a password manager');
-  console.log('  2. Run: node src/server.js');
-  console.log('  3. Gate display will fetch its secret via POST /gate/bootstrap');
-  console.log('  4. Default login: roll=STU-001 (student), WAR-001 (warden), ADMIN-001 (admin)\n');
+  console.log('  2. Change default passwords immediately in production!');
+  console.log('  3. Run: node src/server.js');
+  console.log('  4. Access admin dashboard at http://localhost/admin\n');
 
   await pool.end();
 }

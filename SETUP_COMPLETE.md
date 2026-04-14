@@ -1,4 +1,4 @@
-# 🚀 SentinelGate — Local Development Setup Complete
+❯ see i have dowloaded docker deskto it is on so jusst help me run it with that # 🚀 SentinelGate — Local Development Setup Complete
 
 ## ✅ Status
 

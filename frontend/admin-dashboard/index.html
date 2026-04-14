@@ -548,7 +548,7 @@
               this.userRole = data.role;
               this.userName = data.name;
               localStorage.setItem('adminToken', this.token);
-              localStorage.setItem('adminRole', this.role);
+              localStorage.setItem('adminRole', this.userRole);
               localStorage.setItem('adminName', this.userName);
               this.init();
             } else {
