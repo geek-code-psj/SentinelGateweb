@@ -537,13 +537,19 @@
 
         async login() {
           try {
+            console.log('[Admin Login] Sending:', this.loginForm);
             const res = await fetch('/admin/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(this.loginForm)
             });
+            console.log('[Admin Login] Response status:', res.status, res.statusText);
+            
             const data = await res.json();
+            console.log('[Admin Login] Response data:', data);
+            
             if (res.ok) {
+              console.log('[Admin Login] ✓ Login success');
               this.token = data.token;
               this.userRole = data.role;
               this.userName = data.name;
@@ -552,9 +558,11 @@
               localStorage.setItem('adminName', this.userName);
               this.init();
             } else {
+              console.log('[Admin Login] ✗ Login failed:', data.error);
               this.loginError = data.error || 'Login failed';
             }
           } catch (e) {
+            console.log('[Admin Login] ✗ Exception:', e.message, e);
             this.loginError = 'Connection error: ' + e.message;
           }
         },

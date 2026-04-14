@@ -10,7 +10,10 @@ const { requireAuth } = require('../middleware/hmac');
  */
 router.post('/login', async (req, res) => {
   const { roll_number, password } = req.body;
+  console.log('[Admin Login] Attempt:', { roll_number, password_length: password?.length || 0 });
+  
   if (!roll_number || !password) {
+    console.log('[Admin Login] Missing fields:', { roll_number: !!roll_number, password: !!password });
     return res.status(400).json({ error: 'LOGIN_MISSING_FIELDS' });
   }
   try {
@@ -19,16 +22,30 @@ router.post('/login', async (req, res) => {
        WHERE roll_number = $1 AND role IN ('admin','warden','guard') AND is_active = TRUE`,
       [roll_number]
     );
+    console.log('[Admin Login] User lookup result:', { rowCount: result.rowCount, found: result.rowCount > 0 });
+    
     if (result.rowCount === 0) {
+      console.log('[Admin Login] User not found or not admin/warden/guard');
       return res.status(401).json({ error: 'LOGIN_INVALID_CREDENTIALS' });
     }
+    
     const user = result.rows[0];
+    console.log('[Admin Login] User found:', { roll: user.roll_number, role: user.role, has_hash: !!user.password_hash });
     
     // Validate password using bcrypt
-    const passwordMatch = await bcrypt.compare(password, user.password_hash || '');
-    if (!passwordMatch) {
+    if (!user.password_hash) {
+      console.log('[Admin Login] No password hash set for user:', user.roll_number);
       return res.status(401).json({ error: 'LOGIN_INVALID_CREDENTIALS' });
     }
+    
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    console.log('[Admin Login] Password validation:', { match: passwordMatch });
+    
+    if (!passwordMatch) {
+      console.log('[Admin Login] Password mismatch for:', roll_number);
+      return res.status(401).json({ error: 'LOGIN_INVALID_CREDENTIALS' });
+    }
+    
     const secret = user.role === 'admin'
       ? (process.env.ADMIN_JWT_SECRET || 'dev_admin_secret')
       : (process.env.JWT_SECRET || 'dev_secret');
@@ -37,9 +54,11 @@ router.post('/login', async (req, res) => {
       secret,
       { expiresIn: '12h' }
     );
+    console.log('[Admin Login] ✓ SUCCESS:', { roll: user.roll_number, role: user.role });
     return res.json({ token, role: user.role, name: user.full_name });
   } catch (err) {
-    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+    console.log('[Admin Login] ✗ ERROR:', { message: err.message, stack: err.stack });
+    return res.status(500).json({ error: 'INTERNAL_ERROR', details: err.message });
   }
 });
 
