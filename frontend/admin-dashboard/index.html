@@ -577,6 +577,16 @@
             this.events.unshift(event);
             if (this.events.length > 100) this.events.pop();
           });
+          // Handle leave approval decisions in real-time
+          this.eventSource.addEventListener('leave_decision', (e) => {
+            const decision = JSON.parse(e.data);
+            // Remove the leave from queue when approved/rejected
+            this.leaveQueue = this.leaveQueue.filter(l => l.id !== decision.leave_id);
+            // Optionally show a notification
+            if (decision.status === 'APPROVED') {
+              console.log('Leave approved:', decision.leave_id, 'by', decision.warden);
+            }
+          });
           this.eventSource.onerror = () => { this.sseConnected = false; };
         },
 
@@ -587,7 +597,7 @@
             });
             if (res.ok) {
               const data = await res.json();
-              this.leaveQueue = data.leaves || [];
+              this.leaveQueue = data.pending || [];
             }
           } catch (e) {}
         },
@@ -597,7 +607,7 @@
             const res = await fetch(`/leave/approve/${leaveId}`, {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ decision: 'approved', notes: 'Approved by admin' })
+              body: JSON.stringify({ action: 'APPROVE', notes: 'Approved by admin' })
             });
             if (res.ok) {
               this.leaveQueue = this.leaveQueue.filter(l => l.id !== leaveId);
@@ -610,7 +620,7 @@
             const res = await fetch(`/leave/approve/${leaveId}`, {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ decision: 'rejected', notes: 'Rejected by admin' })
+              body: JSON.stringify({ action: 'REJECT', notes: 'Rejected by admin' })
             });
             if (res.ok) {
               this.leaveQueue = this.leaveQueue.filter(l => l.id !== leaveId);

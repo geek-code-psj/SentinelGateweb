@@ -302,7 +302,7 @@ router.post('/event', hmacMiddleware, async (req, res) => {
  * POST /auth/sync-batch
  *
  * WorkManager may queue multiple events when offline.
- * This accepts a batch from the outbox.
+ * This accepts a batch from the outbox and processes each event.
  */
 router.post('/sync-batch', hmacMiddleware, async (req, res) => {
   const { events } = req.body;
@@ -313,17 +313,118 @@ router.post('/sync-batch', hmacMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'SYNC_BATCH_TOO_LARGE' });
   }
 
+  const { device } = req;
   const results = [];
+
   for (const event of events) {
     try {
-      // Simulate the single event flow for each item
-      // In production, this would reuse the auth/event logic
-      results.push({ client_event_id: event.local_id, status: 'QUEUED' });
+      const {
+        gate_id, geofence_id,
+        totp_value, totp_window,
+        gps_lat, gps_lng,
+        liveness_score, embedding_hash,
+        direction, client_ts,
+      } = event;
+
+      // Validate required fields
+      if (!gate_id || !totp_value || !totp_window || !gps_lat || !gps_lng || !liveness_score) {
+        results.push({ client_event_id: event.local_id, status: 'FAILED', error: 'MISSING_FIELDS' });
+        continue;
+      }
+
+      // Fetch gate
+      const gateResult = await pool.query(
+        `SELECT id, status, mfa_mode, totp_secret_enc, geofence_id
+         FROM sentinel.gates WHERE id = $1`,
+        [gate_id]
+      );
+      if (gateResult.rowCount === 0) {
+        results.push({ client_event_id: event.local_id, status: 'FAILED', error: 'GATE_NOT_FOUND' });
+        continue;
+      }
+      const gate = gateResult.rows[0];
+
+      if (gate.status === 'LOCKED') {
+        results.push({ client_event_id: event.local_id, status: 'FAILED', error: 'GATE_LOCKED' });
+        continue;
+      }
+
+      // Verify TOTP
+      let gateSecret = await getGateSecretFromCache(gate_id);
+      if (!gateSecret) gateSecret = gate.totp_secret_enc;
+
+      const totpResult = verifyGateTOTP(gateSecret, totp_value, parseInt(totp_window));
+      if (!totpResult.valid) {
+        results.push({ client_event_id: event.local_id, status: 'REJECTED', error: 'TOTP_INVALID' });
+        continue;
+      }
+
+      // Verify geofence
+      const geoResult = await verifyGeofence(geofence_id, parseFloat(gps_lat), parseFloat(gps_lng));
+      if (!geoResult.inFence && gate.mfa_mode === 'FULL') {
+        results.push({ client_event_id: event.local_id, status: 'REJECTED', error: 'GPS_OUT_OF_FENCE' });
+        continue;
+      }
+
+      // Verify liveness
+      const livenessThreshold = gate.mfa_mode === 'FULL' ? 0.75 : 0.60;
+      const livenessFloat = parseFloat(liveness_score);
+      if (livenessFloat < livenessThreshold) {
+        results.push({ client_event_id: event.local_id, status: 'REJECTED', error: 'LIVENESS_BELOW_THRESHOLD' });
+        continue;
+      }
+
+      // Write auth event
+      const payloadHash = crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex');
+
+      const eventResult = await pool.query(
+        `INSERT INTO sentinel.auth_events (
+           user_id, device_id, student_roll, gate_id, geofence_id,
+           client_ts, totp_window, payload_hash,
+           totp_valid, gps_lat, gps_lng, gps_in_fence, gps_distance_m,
+           liveness_score, liveness_pass, status, rejection_reason,
+           hmac_valid, direction, mfa_mode_used
+         ) VALUES ($1, $2, $3, $4, $5, to_timestamp($6 / 1000.0), $7, $8, TRUE, $9, $10, $11, $12, $13, TRUE, 'GRANTED', NULL, TRUE, $14, $15)
+         RETURNING id`,
+        [
+          device.userId, device.id, device.rollNumber, gate_id, geofence_id,
+          client_ts || Date.now(), totp_window, payloadHash,
+          gps_lat, gps_lng, geoResult.inFence, geoResult.distanceMeters,
+          livenessFloat, direction || 'OUT', gate.mfa_mode,
+        ]
+      );
+
+      const eventId = eventResult.rows[0].id;
+
+      // Update presence
+      await pool.query(
+        `INSERT INTO sentinel.student_presence (user_id, current_status, last_gate_id, last_event_id, updated_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET
+           current_status = $2, last_gate_id = $3, last_event_id = $4, updated_at = NOW()`,
+        [device.userId, direction || 'OUT', gate_id, eventId]
+      );
+
+      // Notify SSE
+      global.sseNotify?.('auth_event', {
+        id: eventId,
+        student_roll: device.rollNumber,
+        gate_id,
+        status: 'GRANTED',
+        liveness_score: livenessFloat,
+        gps_in_fence: geoResult.inFence,
+        totp_valid: true,
+        direction: direction || 'OUT',
+      });
+
+      results.push({ client_event_id: event.local_id, status: 'SYNCED', server_event_id: eventId });
     } catch (e) {
+      console.error('[Sync Batch] Error processing event:', e.message);
       results.push({ client_event_id: event.local_id, status: 'FAILED', error: e.message });
     }
   }
-  return res.json({ synced: results.length, results });
+
+  return res.json({ synced: results.filter(r => r.status === 'SYNCED').length, results });
 });
 
 module.exports = router;

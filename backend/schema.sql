@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS sentinel.devices (
     hmac_secret_enc TEXT NOT NULL,                      -- AES-256 encrypted with server master key
     platform        VARCHAR(10) CHECK (platform IN ('android','ios')),
     model           TEXT,
+    fcm_token       TEXT,                                -- Firebase Cloud Messaging token for push notifications
     enrolled_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_active_at  TIMESTAMPTZ,
     is_revoked      BOOLEAN NOT NULL DEFAULT FALSE,
