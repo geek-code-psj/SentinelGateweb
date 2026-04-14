@@ -67,7 +67,11 @@ if (process.env.NODE_ENV !== 'test') {
 app.get('/health', async (req, res) => {
   let dbOk = false;
   try {
-    await pool.query('SELECT 1');
+    const dbProbe = pool.query('SELECT 1');
+    const timeoutProbe = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('DB_HEALTH_TIMEOUT')), 1500);
+    });
+    await Promise.race([dbProbe, timeoutProbe]);
     dbOk = true;
   } catch {}
   res.json({
@@ -128,6 +132,15 @@ const server = app.listen(PORT, HOST, () => {
 server.on('error', (err) => {
   console.error('[SERVER] Failed to start:', err.message);
   process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason && reason.message ? reason.message : String(reason);
+  console.error('[PROCESS] Unhandled rejection:', msg);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[PROCESS] Uncaught exception:', err.message);
 });
 
 module.exports = app;

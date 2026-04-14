@@ -2,6 +2,12 @@ const { Pool } = require('pg');
 let pool;
 let useMock = false;
 
+function shouldUseSsl() {
+  if (process.env.DB_SSL === 'true') return true;
+  if (process.env.DB_SSL === 'false') return false;
+  return process.env.NODE_ENV === 'production';
+}
+
 // In development, use mock immediately
 const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
 if (isDev || process.env.DISABLE_DB === 'true') {
@@ -12,16 +18,29 @@ if (isDev || process.env.DISABLE_DB === 'true') {
 } else {
   // Try to use real PostgreSQL, fall back to mock if unavailable
   try {
-    pool = new Pool({
-      host:     process.env.DB_HOST     || 'localhost',
-      port:     parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME     || 'sentinelgate',
-      user:     process.env.DB_USER     || 'sentinel_app',
-      password: process.env.DB_PASSWORD || '',
+    const useSsl = shouldUseSsl();
+    const baseConfig = {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
-    });
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
+    };
+
+    if (process.env.DATABASE_URL) {
+      pool = new Pool({
+        ...baseConfig,
+        connectionString: process.env.DATABASE_URL,
+      });
+    } else {
+      pool = new Pool({
+        ...baseConfig,
+        host:     process.env.DB_HOST     || 'localhost',
+        port:     parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME     || 'sentinelgate',
+        user:     process.env.DB_USER     || 'sentinel_app',
+        password: process.env.DB_PASSWORD || '',
+      });
+    }
 
     pool.on('error', (err) => {
       console.error('[DB] Unexpected pool error:', err?.message || String(err).substring(0, 50));
