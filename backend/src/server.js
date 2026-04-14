@@ -49,15 +49,12 @@ const adminLimiter = rateLimit({
 // ── Body parsing ─────────────────────────────────────────────
 // IMPORTANT: raw body must be available before JSON parsing
 // for HMAC canonical string construction
-app.use((req, res, next) => {
-  let rawBody = '';
-  req.on('data', chunk => { rawBody += chunk; });
-  req.on('end', () => {
-    req.rawBody = rawBody;
-    next();
-  });
-});
-app.use(express.json());
+// Use express.json() with verify callback to capture raw body
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // ── Logging ───────────────────────────────────────────────────
@@ -81,7 +78,9 @@ app.get('/health', async (req, res) => {
 });
 
 // ── Routes ────────────────────────────────────────────────────
+console.log('[SERVER] Registering gate routes...');
 app.use('/gate',  gateRoutes);
+console.log('[SERVER] Gate routes registered');
 app.use('/auth',  authLimiter, authRoutes);
 app.use('/admin', adminLimiter, adminRoutes);
 app.use('/sync',  syncRoutes);

@@ -17,6 +17,7 @@ const { cacheGateSecret, getGateSecretFromCache, cacheGateTelemetry, getGateTele
  * In production, use mTLS or a signed device certificate.
  */
 router.post('/bootstrap', async (req, res) => {
+  console.log('[Gate Bootstrap] POST received - body:', JSON.stringify(req.body));
   const { gate_id } = req.body;
   const apiKey = req.headers['x-gate-api-key'];
 
@@ -26,7 +27,8 @@ router.post('/bootstrap', async (req, res) => {
 
   // In production: verify apiKey against gates table
   // For now, any request with the gate_id is accepted in dev mode
-  if (process.env.NODE_ENV !== 'development' && !apiKey) {
+  const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  if (!isDev && !apiKey) {
     return res.status(401).json({ error: 'GATE_API_KEY_REQUIRED' });
   }
 
@@ -70,8 +72,13 @@ router.post('/bootstrap', async (req, res) => {
       mu:          gate.mu_capacity,
     });
   } catch (err) {
-    console.error('[Gate Bootstrap]', err.message);
-    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+    console.error('[Gate Bootstrap] Error:', {
+      message: err?.message,
+      stack: err?.stack?.split('\n')[0],
+      type: typeof err,
+      err: String(err)
+    });
+    return res.status(500).json({ error: 'INTERNAL_ERROR', details: err?.message });
   }
 });
 
@@ -128,8 +135,13 @@ router.get('/telemetry/:gateId', async (req, res) => {
     await cacheGateTelemetry(gateId, telemetry, 30);
     return res.json(telemetry);
   } catch (err) {
-    console.error('[Gate Telemetry]', err.message);
-    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+    console.error('[Gate Telemetry] Error:', {
+      message: err?.message,
+      stack: err?.stack?.split('\n')[0],
+      type: typeof err,
+      err: String(err)
+    });
+    return res.status(500).json({ error: 'INTERNAL_ERROR', details: err?.message });
   }
 });
 
