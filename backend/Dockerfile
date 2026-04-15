@@ -4,5 +4,5 @@ COPY package*.json ./
 RUN npm install --omit=dev
 COPY src/ ./src/
 COPY bootstrap.js .
-EXPOSE 8080
+EXPOSE 3001
 CMD ["node", "src/server.js"]
