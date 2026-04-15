@@ -16,7 +16,7 @@ const { startAllCrons } = require('./workers/crons');
 const { pool }    = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || process.env.RAILWAY_PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 // ── Security middleware ──────────────────────────────────────

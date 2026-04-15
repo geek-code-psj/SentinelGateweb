@@ -5,9 +5,8 @@
     "buildCommand": "npm install --omit=dev"
   },
   "deploy": {
-    "startCommand": "node src/server.js",
+    "startCommand": "node backend/src/server.js",
     "restartPolicyMaxRetries": 5,
-    "restartPolicyWindow": 600,
-    "port": 3001
+    "restartPolicyWindow": 600
   }
 }

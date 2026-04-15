@@ -1,8 +1,8 @@
 FROM node:22-alpine
 WORKDIR /app
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm install --omit=dev
-COPY src/ ./src/
-COPY bootstrap.js .
-EXPOSE 8080
+COPY backend/src/ ./src/
+COPY backend/bootstrap.js .
+EXPOSE 3001
 CMD ["node", "src/server.js"]
