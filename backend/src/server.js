@@ -150,11 +150,18 @@ process.on('unhandledRejection', (reason) => {
   const msg = reason && reason.message ? reason.message : String(reason);
   console.error('[PROCESS] Unhandled rejection:', msg);
   console.error('[PROCESS] Reason:', reason);
+  // Don't exit — keep running
 });
 
 process.on('uncaughtException', (err) => {
   console.error('[PROCESS] Uncaught exception:', err.message);
   console.error('[PROCESS] Stack:', err.stack?.substring(0, 300));
+  // Don't exit — keep running
 });
+
+// Keep alive signal
+setInterval(() => {
+  console.log('[HEARTBEAT] Process alive at', new Date().toISOString());
+}, 30000);
 
 module.exports = app;
