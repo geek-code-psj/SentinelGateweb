@@ -27,13 +27,23 @@ async function schemaExists(client) {
 
 // Initialize database schema from schema.sql
 async function initializeSchema() {
-  if (schemaInitialized || useMock) return;
+  if (schemaInitialized || useMock) {
+    console.log('[DB] Schema initialization skipped (already initialized or using mock)');
+    return;
+  }
   
-  const client = await pool.connect();
+  let client;
   try {
+    // Wait up to 5 seconds for a connection to be available
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 5000)
+    );
+    
+    client = await Promise.race([pool.connect(), timeoutPromise]);
+    
     const exists = await schemaExists(client);
     if (exists) {
-      console.log('[DB] Schema already initialized');
+      console.log('[DB] Schema already exists');
       schemaInitialized = true;
       return;
     }
@@ -42,14 +52,27 @@ async function initializeSchema() {
     const schemaPath = path.join(__dirname, '../schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    await client.query(schema);
-    console.log('[DB] ✅ Schema initialized successfully');
-    schemaInitialized = true;
+    // Execute schema with error handling
+    try {
+      await client.query(schema);
+      console.log('[DB] ✅ Schema initialized successfully');
+      schemaInitialized = true;
+    } catch (execErr) {
+      // Schema execution error - log but don't crash
+      console.error('[DB] Schema execution error:', execErr.message.substring(0, 100));
+      schemaInitialized = true; // Mark as attempted to avoid retry loop
+    }
   } catch (err) {
-    console.error('[DB] Schema initialization failed:', err.message);
-    // Don't throw — let app continue (tables may be created manually later)
+    console.warn('[DB] Schema initialization failed (non-fatal):', err.message.substring(0, 100));
+    // Don't mark as initialized - allow retry on next pool connection
   } finally {
-    client.release();
+    if (client) {
+      try {
+        client.release();
+      } catch (e) {
+        console.warn('[DB] Error releasing client:', e.message);
+      }
+    }
   }
 }
 

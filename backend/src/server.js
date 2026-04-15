@@ -117,7 +117,7 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────
-const server = app.listen(PORT, HOST, async () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  SentinelGate Backend v2.0               ║`);
   console.log(`║  Listening on http://${HOST}:${PORT}         ║`);
@@ -126,14 +126,16 @@ const server = app.listen(PORT, HOST, async () => {
   console.log(`  DB:   ${process.env.DB_HOST || process.env.DATABASE_URL?.split('@')[1] || 'unknown'}`);
   console.log(`  Redis: ${process.env.REDIS_URL || 'redis://localhost:6379'}\n`);
 
-  // Initialize schema before starting crons
-  try {
-    await initializeSchema();
-  } catch (err) {
-    console.warn('[SERVER] Schema initialization skipped:', err.message);
-  }
-
   startAllCrons();
+
+  // Initialize schema in background (don't block server startup)
+  if (process.env.NODE_ENV === 'production') {
+    setImmediate(() => {
+      initializeSchema().catch(err => 
+        console.error('[DB] Background schema init failed:', err.message)
+      );
+    });
+  }
 });
 
 server.on('error', (err) => {
