@@ -1,6 +1,6 @@
 {
   "routes": [
-    { "src": "/api/(.*)", "dest": "https://sentinelgateweb-production.up.railway.app/api/$1" },
+    { "src": "/api/(.*)", "dest": "https://sentinelgateweb-production.up.railway.app/api/$1", "headers": { "Cache-Control": "no-cache" } },
     { "src": "/admin.*", "dest": "/admin-dashboard/index.html" },
     { "src": "/.*", "dest": "/gate-display/index.html" }
   ]
