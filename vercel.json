@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://sentinelgateweb-production.up.railway.app/$1" },
+    { "source": "/api/(.*)", "destination": "https://sentinelgateweb-production.up.railway.app/api/$1" },
     { "source": "/admin", "destination": "/admin-dashboard/index.html" },
     { "source": "/admin/(.*)", "destination": "/admin-dashboard/index.html" },
     { "source": "/(.*)", "destination": "/gate-display/index.html" }
