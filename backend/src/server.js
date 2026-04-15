@@ -13,7 +13,7 @@ const syncRoutes  = require('./routes/sync');
 const leaveRoutes = require('./routes/leave');
 const { sseHandler } = require('./utils/sse');
 const { startAllCrons } = require('./workers/crons');
-const { pool, initializeSchema }    = require('./db');
+const { pool }    = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -138,15 +138,6 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`  Redis: ${process.env.REDIS_URL || 'redis://localhost:6379'}\n`);
 
   startAllCrons();
-
-  // Initialize schema in background (don't block server startup)
-  if (process.env.NODE_ENV === 'production') {
-    setImmediate(() => {
-      initializeSchema().catch(err => 
-        console.error('[DB] Background schema init failed:', err.message)
-      );
-    });
-  }
 });
 
 server.on('error', (err) => {
