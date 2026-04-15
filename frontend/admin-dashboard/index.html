@@ -540,7 +540,7 @@
         async login() {
           try {
             console.log('[Admin Login] Sending:', this.loginForm);
-            const res = await fetch('/admin/login', {
+            const res = await fetch('/api/admin/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(this.loginForm)
@@ -602,7 +602,7 @@
 
         async loadLeaveQueue() {
           try {
-            const res = await fetch('/leave/pending', {
+            const res = await fetch('/api/leave/pending', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -640,7 +640,7 @@
 
         async submitOverride() {
           try {
-            const res = await fetch('/admin/override', {
+            const res = await fetch('/api/admin/override', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
               body: JSON.stringify(this.overrideForm)
@@ -660,7 +660,7 @@
 
         async loadCurfew() {
           try {
-            const res = await fetch('/admin/curfew', {
+            const res = await fetch('/api/admin/curfew', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -672,7 +672,7 @@
 
         async loadGeofences() {
           try {
-            const res = await fetch('/admin/geofences', {
+            const res = await fetch('/api/admin/geofences', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -684,7 +684,7 @@
 
         async loadMetrics() {
           try {
-            const res = await fetch('/admin/metrics', {
+            const res = await fetch('/api/admin/metrics', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {

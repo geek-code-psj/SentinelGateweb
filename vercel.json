@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://sentinelgateweb-production.up.railway.app/$1" }
+  ]
+}

@@ -102,17 +102,17 @@ app.get('/favicon.ico', (req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────
 console.log('[SERVER] Registering gate routes...');
-app.use('/gate',  gateRoutes);
+app.use('/api/gate',  gateRoutes);
 console.log('[SERVER] Gate routes registered');
-app.use('/auth',  authLimiter, authRoutes);
-app.use('/admin', adminLimiter, adminRoutes);
-app.use('/sync',  syncRoutes);
-app.use('/leave', authLimiter, leaveRoutes);
+app.use('/api/auth',  authLimiter, authRoutes);
+app.use('/api/admin', adminLimiter, adminRoutes);
+app.use('/api/sync',  syncRoutes);
+app.use('/api/leave', authLimiter, leaveRoutes);
 
 // ── SSE: real-time stream for admin dashboard ─────────────────
-// Admin dashboard connects once: GET /admin/stream
+// Admin dashboard connects once: GET /api/admin/stream
 // Receives: auth_event, anomaly, leave_decision, gate_status
-app.get('/admin/stream', require('./middleware/hmac').requireAuth(['admin','warden','guard']), sseHandler);
+app.get('/api/admin/stream', require('./middleware/hmac').requireAuth(['admin','warden','guard']), sseHandler);
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use((req, res) => {
