@@ -1,13 +1,9 @@
 {
-  "build": {
-    "command": "echo 'No build needed - serving static files'",
-    "outputDirectory": "."
-  },
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://sentinelgateweb-production.up.railway.app/api/:path*" },
-    { "source": "/admin/:path*", "destination": "/frontend/admin-dashboard/index.html" },
-    { "source": "/admin", "destination": "/frontend/admin-dashboard/index.html" },
-    { "source": "/:path*", "destination": "/frontend/gate-display/index.html" },
-    { "source": "/", "destination": "/frontend/gate-display/index.html" }
+    { "source": "/admin/:path*", "destination": "/admin-dashboard/index.html" },
+    { "source": "/admin", "destination": "/admin-dashboard/index.html" },
+    { "source": "/:path*", "destination": "/gate-display/index.html" },
+    { "source": "/", "destination": "/gate-display/index.html" }
   ]
 }
