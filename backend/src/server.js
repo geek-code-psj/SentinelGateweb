@@ -30,6 +30,7 @@ app.use(cors({
     'http://localhost:5173',  // Vite dev
     'http://localhost:8080',  // Gate display dev
     /\.sentinelgate\.local$/,  // Internal domain pattern
+    /\.vercel\.app$/,  // Vercel frontend domains (admin & gate display)
   ],
   credentials: true,
 }));
