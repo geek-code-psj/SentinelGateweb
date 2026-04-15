@@ -49,12 +49,7 @@ services:
       - "3001:3001"
     environment:
       NODE_ENV:            production
-      DB_HOST:             postgres
-      DB_PORT:             5432
-      DB_NAME:             sentinelgate
-      DB_USER:             sentinel_app
-      DB_PASSWORD:         sg_dev_password_change_me
-      DB_SSL:              false
+      DATABASE_URL:        postgresql://sentinel_app:sg_dev_password_change_me@postgres:5432/sentinelgate
       REDIS_URL:           redis://redis:6379
       JWT_SECRET:          dev_jwt_secret_32_chars_minimum__
       ADMIN_JWT_SECRET:    dev_admin_secret_32_chars_minimum
@@ -77,11 +72,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DB_HOST:     postgres
-      DB_PORT:     5432
-      DB_NAME:     sentinelgate
-      DB_USER:     sentinel_app
-      DB_PASSWORD: sg_dev_password_change_me
+      DATABASE_URL: postgresql://sentinel_app:sg_dev_password_change_me@postgres:5432/sentinelgate
     depends_on:
       postgres:
         condition: service_healthy
