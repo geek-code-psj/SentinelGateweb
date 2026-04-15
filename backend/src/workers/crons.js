@@ -123,15 +123,26 @@ function startTelemetryCron() {
   cron.schedule('*/5 * * * *', async () => {
     try {
       const gates = await pool.query(`SELECT id, mu_capacity FROM sentinel.gates`);
+      
+      if (!gates || !gates.rows || gates.rows.length === 0) {
+        console.log('[CRON] Telemetry: No gates found');
+        return;
+      }
 
       for (const gate of gates.rows) {
         // Count auth events in last 5 minutes = λ (per 5 min)
         const countResult = await pool.query(
-          `SELECT COUNT(*) FROM sentinel.auth_events
+          `SELECT COUNT(*) as count FROM sentinel.auth_events
            WHERE gate_id = $1 AND server_ts > NOW() - INTERVAL '5 minutes'`,
           [gate.id]
         );
-        const total5min = parseInt(countResult.rows[0].count);
+        
+        if (!countResult || !countResult.rows || !countResult.rows[0]) {
+          console.warn(`[CRON] Telemetry: No count result for gate ${gate.id}`);
+          continue;
+        }
+        
+        const total5min = parseInt(countResult.rows[0].count || 0);
         const lambdaPerMin = total5min / 5;   // events per minute
         const mu = gate.mu_capacity || 12;    // service rate (persons/min per gate)
         const rho = mu > 0 ? Math.min(lambdaPerMin / mu, 0.999) : 0;
