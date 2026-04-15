@@ -64,19 +64,12 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // ── Health check ──────────────────────────────────────────────
-app.get('/health', async (req, res) => {
-  let dbOk = false;
-  try {
-    const dbProbe = pool.query('SELECT 1');
-    const timeoutProbe = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('DB_HEALTH_TIMEOUT')), 1500);
-    });
-    await Promise.race([dbProbe, timeoutProbe]);
-    dbOk = true;
-  } catch {}
+app.get('/health', (req, res) => {
+  // Simple health check - don't block on DB queries
+  // Returns immediately to avoid timeouts during pool operations
   res.json({
-    status: dbOk ? 'ok' : 'degraded',
-    db: dbOk ? 'connected' : 'error',
+    status: 'ok',
+    service: 'sentinelgate-backend',
     ts: new Date().toISOString(),
     version: '2.0.0',
   });
