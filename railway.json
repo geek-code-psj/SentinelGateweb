@@ -3,7 +3,7 @@
   "build": {
     "builder": "nixpacks",
     "watchPaths": ["backend/**"],
-    "buildCommand": "cd backend && npm ci --only=production"
+    "buildCommand": "cd backend && npm install --omit=dev"
   },
   "deploy": {
     "startCommand": "node backend/src/server.js",
