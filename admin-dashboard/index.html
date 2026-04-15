@@ -540,7 +540,7 @@
         async login() {
           try {
             console.log('[Admin Login] Sending:', this.loginForm);
-            const res = await fetch('/api/admin/login', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/admin/login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(this.loginForm)
@@ -580,7 +580,7 @@
         },
 
         connectSSE() {
-          this.eventSource = new EventSource('/admin/stream?token=' + this.token);
+          this.eventSource = new EventSource('https://sentinelgateweb-production.up.railway.app/api/admin/stream?token=' + this.token);
           this.eventSource.onopen = () => { this.sseConnected = true; };
           this.eventSource.addEventListener('auth_event', (e) => {
             const event = JSON.parse(e.data);
@@ -602,7 +602,7 @@
 
         async loadLeaveQueue() {
           try {
-            const res = await fetch('/api/leave/pending', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/leave/pending', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -614,7 +614,7 @@
 
         async approveLeave(leaveId) {
           try {
-            const res = await fetch(`/leave/approve/${leaveId}`, {
+            const res = await fetch(`https://sentinelgateweb-production.up.railway.app/api/leave/approve/${leaveId}`, {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'APPROVE', notes: 'Approved by admin' })
@@ -627,7 +627,7 @@
 
         async rejectLeave(leaveId) {
           try {
-            const res = await fetch(`/leave/approve/${leaveId}`, {
+            const res = await fetch(`https://sentinelgateweb-production.up.railway.app/api/leave/approve/${leaveId}`, {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'REJECT', notes: 'Rejected by admin' })
@@ -640,7 +640,7 @@
 
         async submitOverride() {
           try {
-            const res = await fetch('/api/admin/override', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/admin/override', {
               method: 'POST',
               headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
               body: JSON.stringify(this.overrideForm)
@@ -660,7 +660,7 @@
 
         async loadCurfew() {
           try {
-            const res = await fetch('/api/admin/curfew', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/admin/curfew', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -672,7 +672,7 @@
 
         async loadGeofences() {
           try {
-            const res = await fetch('/api/admin/geofences', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/admin/geofences', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
@@ -684,7 +684,7 @@
 
         async loadMetrics() {
           try {
-            const res = await fetch('/api/admin/metrics', {
+            const res = await fetch('https://sentinelgateweb-production.up.railway.app/api/admin/metrics', {
               headers: { 'Authorization': 'Bearer ' + this.token }
             });
             if (res.ok) {
