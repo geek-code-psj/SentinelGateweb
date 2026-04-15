@@ -63,21 +63,37 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
 }
 
+// ── Request logger ────────────────────────────────────────────
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.path} from ${req.ip}`);
+  next();
+});
+
 // ── Health check ──────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  // Simple health check - don't block on DB queries
-  // Returns immediately to avoid timeouts during pool operations
-  res.json({
-    status: 'ok',
-    service: 'sentinelgate-backend',
-    ts: new Date().toISOString(),
-    version: '2.0.0',
-  });
+  try {
+    // Simple health check - don't block on DB queries
+    // Returns immediately to avoid timeouts during pool operations
+    res.json({
+      status: 'ok',
+      service: 'sentinelgate-backend',
+      ts: new Date().toISOString(),
+      version: '2.0.0',
+    });
+  } catch (err) {
+    console.error('[HEALTH] Error:', err.message);
+    res.status(500).json({ error: 'HEALTH_CHECK_FAILED', message: err.message });
+  }
 });
 
 // Keep root path healthy for platforms that default health checks to '/'.
 app.get('/', (req, res) => {
-  res.status(200).json({ service: 'sentinelgate-backend', status: 'ok' });
+  try {
+    res.status(200).json({ service: 'sentinelgate-backend', status: 'ok' });
+  } catch (err) {
+    console.error('[ROOT] Error:', err.message);
+    res.status(500).json({ error: 'ROOT_FAILED' });
+  }
 });
 
 app.get('/favicon.ico', (req, res) => {
@@ -100,13 +116,15 @@ app.get('/admin/stream', require('./middleware/hmac').requireAuth(['admin','ward
 
 // ── 404 handler ───────────────────────────────────────────────
 app.use((req, res) => {
+  console.log('[404]', req.method, req.path);
   res.status(404).json({ error: 'NOT_FOUND', path: req.path });
 });
 
 // ── Error handler ─────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err.message);
-  res.status(500).json({ error: 'INTERNAL_ERROR' });
+  console.error('[ERROR]', req.method, req.path, '—', err.message);
+  console.error('[STACK]', err.stack?.substring(0, 200));
+  res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message });
 });
 
 // ── Start ─────────────────────────────────────────────────────
@@ -133,16 +151,19 @@ const server = app.listen(PORT, HOST, () => {
 
 server.on('error', (err) => {
   console.error('[SERVER] Failed to start:', err.message);
+  console.error('[SERVER] Stack:', err.stack?.substring(0, 300));
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
   const msg = reason && reason.message ? reason.message : String(reason);
   console.error('[PROCESS] Unhandled rejection:', msg);
+  console.error('[PROCESS] Reason:', reason);
 });
 
 process.on('uncaughtException', (err) => {
   console.error('[PROCESS] Uncaught exception:', err.message);
+  console.error('[PROCESS] Stack:', err.stack?.substring(0, 300));
 });
 
 module.exports = app;
