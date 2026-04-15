@@ -13,7 +13,7 @@ const syncRoutes  = require('./routes/sync');
 const leaveRoutes = require('./routes/leave');
 const { sseHandler } = require('./utils/sse');
 const { startAllCrons } = require('./workers/crons');
-const { pool }    = require('./db');
+const { pool, initializeSchema }    = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -117,14 +117,21 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  SentinelGate Backend v2.0               ║`);
   console.log(`║  Listening on http://${HOST}:${PORT}         ║`);
   console.log(`╚══════════════════════════════════════════╝\n`);
   console.log(`  ENV:  ${process.env.NODE_ENV || 'development'}`);
-  console.log(`  DB:   ${process.env.DB_HOST}/${process.env.DB_NAME}`);
+  console.log(`  DB:   ${process.env.DB_HOST || process.env.DATABASE_URL?.split('@')[1] || 'unknown'}`);
   console.log(`  Redis: ${process.env.REDIS_URL || 'redis://localhost:6379'}\n`);
+
+  // Initialize schema before starting crons
+  try {
+    await initializeSchema();
+  } catch (err) {
+    console.warn('[SERVER] Schema initialization skipped:', err.message);
+  }
 
   startAllCrons();
 });

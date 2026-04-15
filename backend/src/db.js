@@ -1,11 +1,56 @@
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
 let pool;
 let useMock = false;
+let schemaInitialized = false;
 
 function shouldUseSsl() {
   if (process.env.DB_SSL === 'true') return true;
   if (process.env.DB_SSL === 'false') return false;
   return process.env.NODE_ENV === 'production';
+}
+
+// Check if schema exists
+async function schemaExists(client) {
+  try {
+    const result = await client.query(
+      `SELECT 1 FROM information_schema.schemata WHERE schema_name = 'sentinel'`
+    );
+    return result.rows.length > 0;
+  } catch (err) {
+    console.warn('[DB] Schema check failed:', err.message);
+    return false;
+  }
+}
+
+// Initialize database schema from schema.sql
+async function initializeSchema() {
+  if (schemaInitialized || useMock) return;
+  
+  const client = await pool.connect();
+  try {
+    const exists = await schemaExists(client);
+    if (exists) {
+      console.log('[DB] Schema already initialized');
+      schemaInitialized = true;
+      return;
+    }
+    
+    console.log('[DB] Initializing schema...');
+    const schemaPath = path.join(__dirname, '../schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    
+    await client.query(schema);
+    console.log('[DB] ✅ Schema initialized successfully');
+    schemaInitialized = true;
+  } catch (err) {
+    console.error('[DB] Schema initialization failed:', err.message);
+    // Don't throw — let app continue (tables may be created manually later)
+  } finally {
+    client.release();
+  }
 }
 
 // In development, use mock immediately
@@ -51,6 +96,13 @@ if (isDev || process.env.DISABLE_DB === 'true') {
         pool = mockDb.pool;
       }
     });
+
+    // Initialize schema on first connection
+    pool.once('connect', () => {
+      initializeSchema().catch(err => 
+        console.error('[DB] Failed to initialize schema:', err.message)
+      );
+    });
   } catch (err) {
     console.warn('[DB] PostgreSQL unavailable, using mock:', err?.message || String(err).substring(0, 50));
     useMock = true;
@@ -76,4 +128,4 @@ async function queryWithRole(userId, userRole, text, params) {
   }
 }
 
-module.exports = { pool, queryWithRole };
+module.exports = { pool, queryWithRole, initializeSchema };
