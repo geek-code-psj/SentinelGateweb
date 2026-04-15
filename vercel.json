@@ -1,8 +1,6 @@
 {
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://sentinelgateweb-production.up.railway.app/api/:path*" }
-  ],
   "routes": [
+    { "src": "/api/(.*)", "dest": "https://sentinelgateweb-production.up.railway.app/api/$1" },
     { "src": "/admin(.*)", "dest": "/admin-dashboard/index.html" },
     { "src": "/(.*)", "dest": "/gate-display/index.html" }
   ]
