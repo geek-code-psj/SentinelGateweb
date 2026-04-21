@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node src/server.js)",
+      "Bash(curl -s -X POST http://localhost:3001/gate/bootstrap -H \"Content-Type: application/json\" -d '{\"gate_id\":\"G-01\"}')",
+      "Bash(node -e \"require\\('dotenv'\\).config\\(\\); console.log\\('NODE_ENV:', process.env.NODE_ENV\\)\")",
+      "Bash(node -e ':*)",
+      "WebFetch(domain:sentinelgateweb-production.up.railway.app)",
+      "WebFetch(domain:sentinel-gateweb-ejdf.vercel.app)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
