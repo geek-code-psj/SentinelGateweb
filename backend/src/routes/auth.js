@@ -40,6 +40,7 @@ router.get('/check-user/:roll', async (req, res) => {
  * Body: { roll_number, device_fingerprint, platform, model }
  */
 router.post('/enroll', async (req, res) => {
+  console.log('[DEBUG] /api/auth/enroll hit', req.body);
   const { roll_number, device_fingerprint, platform, model, embedding_hash } = req.body;
 
   if (!roll_number || !device_fingerprint) {
