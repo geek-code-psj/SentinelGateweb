@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SentinelGate" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#00FFB2</item>
+        <item name="colorPrimaryVariant">#0A2030</item>
+        <item name="colorOnPrimary">#0A0F14</item>
+        <item name="android:windowBackground">#0A0F14</item>
+        <item name="android:statusBarColor">#020608</item>
+    </style>
+</resources>

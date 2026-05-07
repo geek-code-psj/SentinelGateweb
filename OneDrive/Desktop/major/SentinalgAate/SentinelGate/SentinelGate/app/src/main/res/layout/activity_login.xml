@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0F14"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SENTINELGATE"
+            android:textColor="#00FFB2"
+            android:textSize="28sp"
+            android:letterSpacing="0.2"
+            android:layout_marginTop="48dp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Student Enrollment"
+            android:textColor="#556677"
+            android:textSize="14sp"
+            android:layout_marginBottom="40dp"/>
+
+        <EditText
+            android:id="@+id/etRollNumber"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:hint="Roll Number"
+            android:textColor="#E0E8F0"
+            android:textColorHint="#334455"
+            android:background="@drawable/bg_input"
+            android:paddingHorizontal="16dp"
+            android:inputType="textCapCharacters"
+            android:layout_marginBottom="12dp"/>
+
+        <EditText
+            android:id="@+id/etName"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:hint="Full Name"
+            android:textColor="#E0E8F0"
+            android:textColorHint="#334455"
+            android:background="@drawable/bg_input"
+            android:paddingHorizontal="16dp"
+            android:inputType="textPersonName|textCapWords"
+            android:layout_marginBottom="12dp"/>
+
+        <EditText
+            android:id="@+id/etDepartment"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:hint="Department"
+            android:textColor="#E0E8F0"
+            android:textColorHint="#334455"
+            android:background="@drawable/bg_input"
+            android:paddingHorizontal="16dp"
+            android:inputType="textCapWords"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:id="@+id/tvError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FF4444"
+            android:visibility="gone"
+            android:layout_marginBottom="12dp"/>
+
+        <Button
+            android:id="@+id/btnEnroll"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="ENROLL DEVICE"
+            android:backgroundTint="#00FFB2"
+            android:textColor="#0A0F14"
+            android:textStyle="bold"
+            android:letterSpacing="0.1"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_marginTop="16dp"/>
+
+    </LinearLayout>
+</ScrollView>
