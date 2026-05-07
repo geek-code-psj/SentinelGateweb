@@ -42,9 +42,9 @@ function getRedis() {
   return redis;
 }
 
-// Store nonce with TTL = HMAC window (60s)
+// Store nonce with TTL = HMAC window (10s)
 // Returns false if nonce was already used (replay attempt)
-async function checkAndStoreNonce(nonce, ttlSeconds = 65) {
+async function checkAndStoreNonce(nonce, ttlSeconds = 10) {
   try {
     const r = getRedis();
     if (!r) return false;

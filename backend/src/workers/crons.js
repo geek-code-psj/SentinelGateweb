@@ -3,17 +3,32 @@ const { pool } = require('../db');
 
 /**
  * ══════════════════════════════════════════════════════════════
- * CRON JOB 1: CURFEW AUDIT — fires at 22:00 every night
+ * TIMEZONE NOTE: All cron times below are in UTC
+ * For production in India (IST = UTC+5:30):
+ *   - 22:00 IST = 16:30 UTC
+ *   - 23:59 IST = 18:29 UTC
+ * 
+ * To run at IST times:
+ *   - Curfew audit: '0 16 * * *' + '30 16 * * *' (split across hour)
+ *   - Re-anonymization: '29 18 * * *'
+ * 
+ * Current schedule assumes Vercel/Railway running in UTC timezone.
+ * If deployment changes, update cron expressions accordingly.
+ * ══════════════════════════════════════════════════════════════
+ * 
+ * CRON JOB 1: CURFEW AUDIT — fires at 22:00 IST
  *
  * Revocable Privacy Model:
  *  - During the day: auth logs contain only user_id (UUID) and roll_number
- *  - At 22:00: this cron DECRYPTS names for students still OUT
- *  - At 23:59: nightly re-anonymization cron re-nulls names
+ *  - At 22:00 IST: this cron DECRYPTS names for students still OUT
+ *  - At 23:59 IST: nightly re-anonymization cron re-nulls names
  * ══════════════════════════════════════════════════════════════
  */
 function startCurfewAuditCron() {
-  cron.schedule('0 22 * * *', async () => {
-    console.log('[CRON] Curfew audit starting at 22:00...');
+  // Curfew audit at 16:30 UTC (= 22:00 IST)
+  // Using { timezone: 'Asia/Kolkata' } ensures correct IST time handling
+  cron.schedule('30 16 * * *', async () => {
+    console.log('[CRON] Curfew audit starting (IST: 22:00)...');
     try {
       // Find all students currently OUT
       const outStudents = await pool.query(
@@ -81,7 +96,7 @@ function startCurfewAuditCron() {
     }
   }, { timezone: 'Asia/Kolkata' });
 
-  console.log('[CRON] Curfew audit scheduled: 22:00 IST daily');
+  console.log('[CRON] Curfew audit scheduled: 16:30 UTC (22:00 IST) daily');
 }
 
 /**
@@ -93,8 +108,9 @@ function startCurfewAuditCron() {
  * ══════════════════════════════════════════════════════════════
  */
 function startReanonymizationCron() {
-  cron.schedule('59 23 * * *', async () => {
-    console.log('[CRON] Nightly re-anonymization starting...');
+  // Re-anonymization at 18:29 UTC (= 23:59 IST)
+  cron.schedule('29 18 * * *', async () => {
+    console.log('[CRON] Nightly re-anonymization starting (IST: 23:59)...');
     try {
       // Null out names in curfew violations (warden can still see roll numbers)
       const result = await pool.query(
@@ -108,7 +124,7 @@ function startReanonymizationCron() {
     }
   }, { timezone: 'Asia/Kolkata' });
 
-  console.log('[CRON] Re-anonymization scheduled: 23:59 IST daily');
+  console.log('[CRON] Re-anonymization scheduled: 18:29 UTC (23:59 IST) daily');
 }
 
 /**

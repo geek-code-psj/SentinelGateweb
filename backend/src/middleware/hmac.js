@@ -37,7 +37,8 @@ async function hmacMiddleware(req, res, next) {
   }
 
   // 3. Nonce uniqueness check via Redis (replay prevention layer 2)
-  const nonceValid = await checkAndStoreNonce(nonce, 65);
+  // TTL = 10s (tight window: allows normal network latency + no malicious replays)
+  const nonceValid = await checkAndStoreNonce(nonce, 10);
   if (!nonceValid) {
     return res.status(401).json({ error: 'HMAC_REPLAY_DETECTED' });
   }

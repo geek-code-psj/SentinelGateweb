@@ -7,6 +7,30 @@ const { verifyGeofence } = require('../utils/geofence');
 const { getGateSecretFromCache } = require('../utils/redis');
 
 /**
+ * GET /auth/check-user/:roll
+ *
+ * Debug endpoint to check if a user exists and is active by roll number.
+ * Returns { exists: true/false, is_active: true/false, user_id }
+ */
+router.get('/check-user/:roll', async (req, res) => {
+  const roll_number = req.params.roll;
+  try {
+    const userResult = await pool.query(
+      `SELECT id, is_active FROM sentinel.users WHERE roll_number = $1`,
+      [roll_number]
+    );
+    if (userResult.rowCount === 0) {
+      return res.json({ exists: false, is_active: false, user_id: null });
+    }
+    const user = userResult.rows[0];
+    return res.json({ exists: true, is_active: user.is_active, user_id: user.id });
+  } catch (err) {
+    console.error('[CheckUser]', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+/**
  * POST /auth/enroll
  *
  * Called ONCE when a student installs the app and registers their device.
