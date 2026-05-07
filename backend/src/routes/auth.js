@@ -44,6 +44,7 @@ router.post('/enroll', async (req, res) => {
   const { roll_number, device_fingerprint, platform, model, embedding_hash } = req.body;
 
   if (!roll_number || !device_fingerprint) {
+    console.log('[DEBUG] ENROLL_MISSING_FIELDS', { roll_number, device_fingerprint });
     return res.status(400).json({ error: 'ENROLL_MISSING_FIELDS' });
   }
 
@@ -54,10 +55,12 @@ router.post('/enroll', async (req, res) => {
       [roll_number]
     );
     if (userResult.rowCount === 0) {
+      console.log('[DEBUG] ENROLL_USER_NOT_FOUND', { roll_number });
       return res.status(404).json({ error: 'ENROLL_USER_NOT_FOUND' });
     }
     const user = userResult.rows[0];
     if (!user.is_active) {
+      console.log('[DEBUG] ENROLL_USER_INACTIVE', { roll_number });
       return res.status(403).json({ error: 'ENROLL_USER_INACTIVE' });
     }
 
