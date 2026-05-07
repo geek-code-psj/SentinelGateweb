@@ -339,6 +339,97 @@ router.get('/gates', requireAuth(['admin', 'warden', 'guard']), async (req, res)
 });
 
 /**
+ * POST /admin/students
+ * Create a new student (requires admin/warden auth)
+ * Body: { roll_number, full_name, hostel_block, room_number, father_name, course, branch, address, date_of_birth, blood_group, phone }
+ */
+router.post('/students', requireAuth(['admin', 'warden']), async (req, res) => {
+  const {
+    roll_number, full_name, hostel_block, room_number,
+    father_name, course, branch, address, date_of_birth, blood_group, phone
+  } = req.body;
+
+  if (!roll_number || !full_name) {
+    return res.status(400).json({ error: 'STUDENT_MISSING_FIELDS' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Check if student already exists
+    const existing = await client.query(
+      `SELECT id FROM sentinel.users WHERE roll_number = $1`,
+      [roll_number]
+    );
+    if (existing.rowCount > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'STUDENT_ALREADY_EXISTS' });
+    }
+
+    // Insert user
+    const userResult = await client.query(
+      `INSERT INTO sentinel.users (roll_number, full_name, role, hostel_block, room_number, is_active)
+       VALUES ($1, $2, 'student', $3, $4, true)
+       RETURNING id`,
+      [roll_number, full_name, hostel_block || null, room_number || null]
+    );
+    const userId = userResult.rows[0].id;
+
+    // Insert profile if any extended data provided
+    if (father_name || course || branch || address || date_of_birth || blood_group || phone) {
+      await client.query(
+        `INSERT INTO sentinel.student_profiles (user_id, father_name, course, branch, address, date_of_birth, blood_group, phone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [userId, father_name || null, course || null, branch || null, address || null, date_of_birth || null, blood_group || null, phone || null]
+      );
+    }
+
+    // Initialize presence
+    await client.query(
+      `INSERT INTO sentinel.student_presence (user_id, current_status)
+       VALUES ($1, 'IN')`,
+      [userId]
+    );
+
+    await client.query('COMMIT');
+    return res.status(201).json({
+      success: true,
+      student_id: userId,
+      roll_number,
+      message: 'Student created successfully'
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[Create Student]', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * GET /admin/students
+ * List all students (requires admin/warden auth)
+ */
+router.get('/students', requireAuth(['admin', 'warden']), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.roll_number, u.full_name, u.hostel_block, u.room_number, u.is_active, u.enrolled_at,
+              p.father_name, p.course, p.branch, p.blood_group, p.phone
+       FROM sentinel.users u
+       LEFT JOIN sentinel.student_profiles p ON p.user_id = u.id
+       WHERE u.role = 'student'
+       ORDER BY u.roll_number`
+    );
+    return res.json({ students: result.rows });
+  } catch (err) {
+    console.error('[List Students]', err.message);
+    return res.status(500).json({ error: 'INTERNAL_ERROR' });
+  }
+});
+
+/**
  * GET /admin/presence
  */
 router.get('/presence', requireAuth(['admin', 'warden']), async (req, res) => {

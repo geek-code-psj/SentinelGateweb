@@ -299,6 +299,19 @@ INSERT INTO sentinel.gates (id, name, geofence_id, location_label, totp_secret_e
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
+-- STUDENT SEED DATA (add your students here)
+-- ============================================================
+INSERT INTO sentinel.users (roll_number, full_name, role, hostel_block, room_number, is_active) VALUES
+('0108BC221043', 'PRABAL PRATAP SINGH JADON', 'student', 'A', '108', true)
+ON CONFLICT (roll_number) DO NOTHING;
+
+INSERT INTO sentinel.student_profiles (user_id, father_name, course, branch, address, date_of_birth, blood_group)
+SELECT id, 'SATYAVEER SINGH JADON', 'B.Tech', 'Computer Science and Engineering (Block Chain)',
+       'POLICE LINE POHARI ROAD IN FRONT OF HERO SHOWROOM, 473551', '2004-06-27', 'A+'
+FROM sentinel.users WHERE roll_number = '0108BC221043'
+ON CONFLICT (user_id) DO NOTHING;
+
+-- ============================================================
 -- 12. LEAVE REQUESTS — Phase 3 state machine
 -- ============================================================
 CREATE TABLE IF NOT EXISTS sentinel.leave_requests (
@@ -333,3 +346,22 @@ CREATE INDEX IF NOT EXISTS idx_leave_pending ON sentinel.leave_requests(status)
 -- Add mfa_mode_used column to auth_events (tracks which mode was active at auth time)
 ALTER TABLE sentinel.auth_events
     ADD COLUMN IF NOT EXISTS mfa_mode_used VARCHAR(20);
+
+-- ============================================================
+-- 13. STUDENT PROFILES — extended student information
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sentinel.student_profiles (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES sentinel.users(id) ON DELETE CASCADE UNIQUE,
+    father_name     TEXT,
+    course          VARCHAR(50),
+    branch          TEXT,
+    address         TEXT,
+    date_of_birth   DATE,
+    blood_group     VARCHAR(5),
+    phone           VARCHAR(20),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_profiles_user ON sentinel.student_profiles(user_id);
