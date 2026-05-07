@@ -16,6 +16,8 @@ const { startAllCrons } = require('./workers/crons');
 const { pool }    = require('./db');
 
 const app = express();
+// Trust the first proxy (important for Railway, Vercel, etc)
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -105,7 +107,7 @@ app.get('/favicon.ico', (req, res) => {
 console.log('[SERVER] Registering gate routes...');
 app.use('/api/gate',  gateRoutes);
 console.log('[SERVER] Gate routes registered');
-app.use('/api/auth',  authLimiter, authRoutes);
+app.use('/api/auth',  authLimiter, authRoutes); // /api/auth/enroll will be handled if defined in authRoutes
 app.use('/api/admin', adminLimiter, adminRoutes);
 app.use('/api/sync',  syncRoutes);
 app.use('/api/leave', authLimiter, leaveRoutes);
