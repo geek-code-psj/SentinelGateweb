@@ -130,8 +130,30 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message });
 });
 
+// ── Seed student data on startup ───────────────────────────────
+async function seedStudentData() {
+  try {
+    await pool.query(`
+      INSERT INTO sentinel.users (roll_number, full_name, role, hostel_block, room_number, is_active) VALUES
+      ('0108BC221043', 'PRABAL PRATAP SINGH JADON', 'student', 'A', '108', true)
+      ON CONFLICT (roll_number) DO NOTHING
+    `);
+    await pool.query(`
+      INSERT INTO sentinel.student_profiles (user_id, father_name, course, branch, address, date_of_birth, blood_group)
+      SELECT id, 'SATYAVEER SINGH JADON', 'B.Tech', 'Computer Science and Engineering (Block Chain)',
+             'POLICE LINE POHARI ROAD IN FRONT OF HERO SHOWROOM, 473551', '2004-06-27', 'A+'
+      FROM sentinel.users WHERE roll_number = '0108BC221043'
+      ON CONFLICT (user_id) DO NOTHING
+    `);
+    console.log('[SEED] Student 0108BC221043 seeded');
+  } catch (e) {
+    console.error('[SEED] Error:', e.message);
+  }
+}
+
 // ── Start ─────────────────────────────────────────────────────
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
+  await seedStudentData();
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║  SentinelGate Backend v2.0               ║`);
   console.log(`║  Listening on http://${HOST}:${PORT}         ║`);
