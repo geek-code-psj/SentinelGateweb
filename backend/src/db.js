@@ -41,18 +41,33 @@ async function initializeSchema() {
     
     client = await Promise.race([pool.connect(), timeoutPromise]);
     
+    const schemaPath = path.join(__dirname, '../schema.sql');
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    
     const exists = await schemaExists(client);
     if (exists) {
-      console.log('[DB] Schema already exists');
+      console.log('[DB] Schema already exists, running seed data...');
+      // Schema exists but seed data may be missing — run INSERT statements
+      // All INSERTs use ON CONFLICT DO NOTHING so this is safe to re-run
+      try {
+        const seedStatements = schema
+          .split(';')
+          .filter(stmt => stmt.trim().toUpperCase().startsWith('INSERT'))
+          .join(';\n') + ';';
+        if (seedStatements.trim() !== ';') {
+          await client.query(seedStatements);
+          console.log('[DB] ✅ Seed data applied successfully');
+        }
+      } catch (seedErr) {
+        console.warn('[DB] Seed data error (non-fatal):', seedErr.message.substring(0, 200));
+      }
       schemaInitialized = true;
       return;
     }
     
     console.log('[DB] Initializing schema...');
-    const schemaPath = path.join(__dirname, '../schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    // Execute schema with error handling
+    // Execute full schema with error handling
     try {
       await client.query(schema);
       console.log('[DB] ✅ Schema initialized successfully');
