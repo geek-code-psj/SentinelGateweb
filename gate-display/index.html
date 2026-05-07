@@ -241,7 +241,15 @@
 
     function mkPayload(tok) {
       const w = Math.floor(TT() / 1000 / C.STEP);
-      return JSON.stringify({ v: 2, g: C.GATE_ID, geo: C.GEO_ID, t: tok, w, mode: 'FULL' });
+      return JSON.stringify({ 
+        v: 2, 
+        gate_id: C.GATE_ID, 
+        geofence_id: C.GEO_ID,  // ← NEW: geofence_id required by Flutter app
+        totp: tok, 
+        w, 
+        mode: 'FULL',
+        expires_at: Math.floor(TT() + 35000)  // ← NEW: 35s expiry (1 TOTP window + buffer)
+      });
     }
 
     async function genQR() {
